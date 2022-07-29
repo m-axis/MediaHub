@@ -1,7 +1,7 @@
 # MediaHub
 This repo contains python code for a GUI based app which helps with multiple tasks on images, video and pdf
 
-![Test](./media/App.gif)
+![Test](https://github.com/m-axis/MediaHub/blob/main/media/app.gif)
 
 # Availabe Features
 ## 1. Youtube Downloader
