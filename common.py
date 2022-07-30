@@ -3,6 +3,7 @@ import PySimpleGUI as sg
 import os, io, base64
 import traceback
 import logging
+import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
 
 log_path = os.path.expanduser('~/Documents')
 logging.basicConfig(filename=f'{log_path}\\mediahub.log', level=logging.DEBUG,
@@ -33,7 +34,7 @@ RESOLUTIONS = ['Highest', '1080p', '720p', '360p']
 cwd = os.getcwd()
 
 # sg.theme('DefaultNoMoreNagging')
-sg.theme('DarkBlack')
+# sg.theme('DarkBlack')
 WIN_FONT = 'Any 10'
 sg.set_options(border_width=0, margins=(0, 0), element_padding=(5, 3))
 WIN_TITLE_COLOR = "#343434"
@@ -65,7 +66,7 @@ async def show_message(msg, status=False):
         sg.popup(msg, keep_on_top=True, title="Error", no_titlebar=True, auto_close=True, background_color="#FA8072")
 
 
-def auto_resize(img_path, default_w=True):
+def auto_resize(img_path, default_w=True, width=None):
     try:
         img = Image.open(img_path)
         try:
@@ -77,6 +78,7 @@ def auto_resize(img_path, default_w=True):
             img = rgb
         actual_w = img.size[0]
         base_width = 400 if default_w else actual_w
+        base_width = width if width else base_width
         if actual_w > base_width:
             w_percent = (int(base_width) / float(img.size[0]))
             h_size = int((float(img.size[1]) * float(w_percent)))
@@ -107,3 +109,24 @@ def get_ratio_h(img_path, width):
     except Exception as error:
         logging.warning(f"common - get_ratio_h: {error}")
         return ''
+
+
+def pdf_to_image(file_path):
+    base64_files = []
+    max_w = 300
+    if file_path.split(".")[-1].upper() == "PDF":
+        doc = fitz.open(file_path)  # open document
+        i = 0
+        for page in doc:
+            pix = page.get_pixmap()  # render page to an image
+            file_path_png = f"./temp/page_{i}.png"
+            pix.save(file_path_png)
+            base64_files.append(auto_resize(file_path_png, width=max_w))
+            os.remove(file_path_png)
+            i += 1
+    else:
+        base64_files.append(auto_resize(file_path, width=max_w))
+    return base64_files
+
+
+print(auto_resize('./media/blank_pdf.png', width=300))
