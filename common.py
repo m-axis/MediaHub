@@ -95,6 +95,17 @@ def auto_resize(img_path, default_w=True, width=None):
         return False
 
 
+def resize_b(img_b, base_width=100):
+    buffer = io.BytesIO()
+    imgdata = base64.b64decode(img_b)
+    img = Image.open(io.BytesIO(imgdata))
+    w_percent = (int(base_width) / float(img.size[0]))
+    h_size = int((float(img.size[1]) * float(w_percent)))
+    new_img = img.resize((base_width, h_size), Image.ANTIALIAS)
+    new_img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue())
+
+
 async def add_new_image(path, key):
     return [
         [sg.Image(path, key=key)]
@@ -113,7 +124,7 @@ def get_ratio_h(img_path, width):
 
 def pdf_to_image(file_path):
     base64_files = []
-    max_w = 300
+    max_w = 800
     if file_path.split(".")[-1].upper() == "PDF":
         doc = fitz.open(file_path)  # open document
         i = 0
@@ -128,5 +139,3 @@ def pdf_to_image(file_path):
         base64_files.append(auto_resize(file_path, width=max_w))
     return base64_files
 
-
-print(auto_resize('./media/blank_pdf.png', width=300))
