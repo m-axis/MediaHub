@@ -3,6 +3,7 @@ import PySimpleGUI as sg
 import os, io, base64
 import traceback
 import logging
+from datetime import datetime
 import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
 
 log_path = os.path.expanduser('~/Documents')
@@ -33,6 +34,8 @@ IMAGES = ['png', 'ico', 'jpg', 'jpeg', 'bmp', 'tiff', 'gif', 'tga', 'sgi', 'pdf'
 RESOLUTIONS = ['Highest', '1080p', '720p', '360p']
 cwd = os.getcwd()
 
+files_to_delete = []
+
 # sg.theme('DefaultNoMoreNagging')
 # sg.theme('DarkBlack')
 WIN_FONT = 'Any 10'
@@ -40,7 +43,7 @@ sg.set_options(border_width=0, margins=(0, 0), element_padding=(5, 3))
 WIN_TITLE_COLOR = "#343434"
 
 
-async def get_image_size(filepath):
+def get_image_size(filepath):
     try:
         im = Image.open(filepath)
         print(im.size)
@@ -59,7 +62,8 @@ def is_image(filename):
         return False
 
 
-async def show_message(msg, status=False):
+# def show_message(msg, status=False):
+def show_message(msg, status=False):
     if status:
         sg.popup(msg, keep_on_top=True, title="Success", no_titlebar=True, auto_close=True, background_color="#43CD80")
     else:
@@ -106,7 +110,7 @@ def resize_b(img_b, base_width=100):
     return base64.b64encode(buffer.getvalue())
 
 
-async def add_new_image(path, key):
+def add_new_image(path, key):
     return [
         [sg.Image(path, key=key)]
     ]
@@ -139,3 +143,34 @@ def pdf_to_image(file_path):
         base64_files.append(auto_resize(file_path, width=max_w))
     return base64_files
 
+
+def get_file_name(ff="pdf"):
+    now = datetime.now()
+    return now.strftime(f"%Y%m%d%H%M%S%f.{ff}")
+
+
+def convert_to_pdf(file_path):
+    global files_to_delete
+    try:
+        file_format = file_path.split(".")[-1]
+        dir_path = f'{cwd}\\temp'
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        if file_format.upper() != "PDF" and file_format.lower() in IMAGES:
+            img = Image.open(file_path)
+            new_file_path = f'{os.getenv("APPDATA")}\\{get_file_name()}'
+            try:
+                img.convert('RGB')
+                img.save(new_file_path)
+            except Exception as error:
+                rgb = Image.new('RGB', img.size, (255, 255, 255))  # white background
+                rgb.paste(img, mask=img.split()[3])
+                rgb.save(new_file_path, 'PDF', resoultion=100.0)
+                logging.warning(f"pdf_merger - convert_to_pdf: {error}")
+            files_to_delete.append(new_file_path)
+            return new_file_path
+        elif file_format.upper() == "PDF":
+            return file_path
+    except Exception as error:
+        logging.error(f"pdf_merger - convert_to_pdf: {error}\n{traceback.format_exc()}")
+        return ""

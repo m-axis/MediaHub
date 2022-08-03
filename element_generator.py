@@ -18,10 +18,10 @@ def file_browser(key, **kwargs):
 
 def add_image(key, **kwargs):
     return [[sg.Frame('Selected', [[sg.Checkbox('', default=True, key=f"CHECK-{key}", enable_events=True),
+                                    sg.Text(" " * 10),
+                                    sg.Text(f"Page {int(key.split('-')[-1]) + 1}", key=f"NUM-{key}"),
                                     sg.Button(" ⥣ ", key=f"UP-{key}"),
                                     sg.Button(" ⥥ ", key=f"DOWN-{key}"),
-                                    sg.Text(" " * 10),
-                                    sg.Text(f"Page {int(key.split('-')[-1]) + 1}", key=f"DOWN-{key}"),
                                     ], [sg.Image(key=key, **kwargs)]],
                       key=f"FRAME-{key}")]]
 
@@ -41,7 +41,8 @@ browse_file_0 = [sg.Input('', key="PF-FILENAME-0", readonly=True, visible=False,
                                size=BROWSE_BTN_SIZE)]
 browse_file_1 = [sg.Input('', key="PF-FILENAME-1", readonly=True, visible=False, enable_events=True),
                  sg.FileBrowse(f'Load File 2', key="BROWSE-PF-FILENAME-1", target="PF-FILENAME-1",
-                               size=BROWSE_BTN_SIZE, disabled=True)]
+                               size=BROWSE_BTN_SIZE, disabled=True),
+                 sg.Button('Clear', key="PF-CLEAR-COL-1", disabled=True)]
 
 view_col_1 = [
     sg.Column([
@@ -51,7 +52,8 @@ view_col_1 = [
 
 action_layout = [
     [sg.Frame('',
-              [[sg.Button("Save PDF", key="PF-SAVE", disabled=True),
+              [[sg.InputText(visible=False, enable_events=True, key='PF-FILE-SAVE'),
+                sg.FileSaveAs("Save PDF", key="PF-SAVE", disabled=True, file_types=(("PDF", "*.pdf"),)),
                 sg.Button("Preview", key="PF-PREVIEW", disabled=True),
                 ],
                ]
