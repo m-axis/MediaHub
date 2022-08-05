@@ -1,4 +1,5 @@
 import PySimpleGUI as sg
+from common import *
 
 file_browse_count = 0
 
@@ -7,23 +8,27 @@ BLANK_PDF = b'iVBORw0KGgoAAAANSUhEUgAAASwAAADICAIAAADdvUsCAAAGr0lEQVR4nO3cQZLTSB
 VIEW_COL_SIZE = (320, 600)
 P_VIEW_SIZE = (600, 600)
 BROWSE_BTN_SIZE = (38, 2)
+MAIN_WINDOW_SIZE = (800, 600)
+
+
 
 
 def file_browser(key, **kwargs):
     global file_browse_count
     file_browse_count += 1
     return [[sg.Input('', key=key, readonly=True, visible=False, **kwargs)],
-            [sg.FileBrowse(f'Open File {file_browse_count}', key=f"BROWSE-{key}", target=key, size=BROWSE_BTN_SIZE)]]
+            [sg.FileBrowse(f'Open File {file_browse_count}', key=f"BROWSE-{key}", target=key, size=BROWSE_BTN_SIZE,
+                           )]]
 
 
 def add_image(key, **kwargs):
     return [[sg.Frame('Selected', [[sg.Checkbox('', default=True, key=f"CHECK-{key}", enable_events=True),
                                     sg.Text(" " * 10),
                                     sg.Text(f"Page {int(key.split('-')[-1]) + 1}", key=f"NUM-{key}"),
-                                    sg.Button(" ⥣ ", key=f"UP-{key}"),
-                                    sg.Button(" ⥥ ", key=f"DOWN-{key}"),
+                                    sg.Button(sg.SYMBOL_UP_ARROWHEAD, key=f"UP-{key}", button_color=BUTTON_COLOR),
+                                    sg.Button(sg.SYMBOL_DOWN_ARROWHEAD, key=f"DOWN-{key}", button_color=BUTTON_COLOR),
                                     ], [sg.Image(key=key, **kwargs)]],
-                      key=f"FRAME-{key}")]]
+                      key=f"FRAME-{key}", background_color=FRAME_COLOR)]]
 
 
 def a_img_p(key, **kwargs):
@@ -32,39 +37,48 @@ def a_img_p(key, **kwargs):
 
 view_col_0 = [
     sg.Column([
-        [sg.Image(source=BLANK_PDF, key="PF-IMAGE-PLACEHOLDER-0")]], key="PF-VIEW-COLUMN-0", size=VIEW_COL_SIZE,
-        scrollable=True, vertical_scroll_only=True),
+        [sg.Image(source=BLANK_PDF, key="PF-IMAGE-PLACEHOLDER-0")]
+    ], key="PF-VIEW-COLUMN-0", size=VIEW_COL_SIZE,
+        scrollable=True, vertical_scroll_only=True, background_color=FRAME_COLOR, sbar_background_color=COLUMN_COLOR),
 ]
 
 browse_file_0 = [sg.Input('', key="PF-FILENAME-0", readonly=True, visible=False, enable_events=True),
                  sg.FileBrowse(f'Load File 1', key="BROWSE-PF-FILENAME-0", target="PF-FILENAME-0",
-                               size=BROWSE_BTN_SIZE)]
+                               size=BROWSE_BTN_SIZE, button_color=BUTTON_COLOR),
+                 sg.Button('Clear', key="PF-CLEAR-COL-0", disabled=True, button_color=BUTTON_COLOR),
+                 ]
 browse_file_1 = [sg.Input('', key="PF-FILENAME-1", readonly=True, visible=False, enable_events=True),
                  sg.FileBrowse(f'Load File 2', key="BROWSE-PF-FILENAME-1", target="PF-FILENAME-1",
-                               size=BROWSE_BTN_SIZE, disabled=True),
-                 sg.Button('Clear', key="PF-CLEAR-COL-1", disabled=True)]
+                               size=BROWSE_BTN_SIZE, disabled=True, button_color=BUTTON_COLOR),
+                 sg.Button('Clear', key="PF-CLEAR-COL-1", disabled=True, button_color=BUTTON_COLOR)]
 
 view_col_1 = [
     sg.Column([
-        [sg.Image(source=BLANK_PDF, key="PF-IMAGE-PLACEHOLDER-1")]], key="PF-VIEW-COLUMN-1", size=VIEW_COL_SIZE,
-        scrollable=True, vertical_scroll_only=True),
+        [sg.Image(source=BLANK_PDF, key="PF-IMAGE-PLACEHOLDER-1")
+         ]
+    ], key="PF-VIEW-COLUMN-1", size=VIEW_COL_SIZE,
+        scrollable=True, vertical_scroll_only=True, background_color=FRAME_COLOR, sbar_background_color=COLUMN_COLOR),
 ]
 
 action_layout = [
     [sg.Frame('',
               [[sg.InputText(visible=False, enable_events=True, key='PF-FILE-SAVE'),
-                sg.FileSaveAs("Save PDF", key="PF-SAVE", disabled=True, file_types=(("PDF", "*.pdf"),)),
-                sg.Button("Preview", key="PF-PREVIEW", disabled=True),
+                sg.FileSaveAs("Save PDF", key="PF-SAVE", disabled=True, file_types=(("PDF", "*.pdf"),),
+                              button_color=BUTTON_COLOR),
+                sg.Button("Preview", key="PF-PREVIEW", disabled=True, button_color=BUTTON_COLOR),
                 ],
                ]
-              , key="FRAME-PF-ACTION", vertical_alignment='c', size=(VIEW_COL_SIZE[0] * 2 + 66, 40))]
+              , key="FRAME-PF-ACTION", vertical_alignment='c', size=(VIEW_COL_SIZE[0] * 2 + 66, 40),
+              background_color=FRAME_COLOR)]
 ]
 
 layout = [
     action_layout,
     [
-        [sg.Frame('File 1', [browse_file_0, view_col_0]),
-         sg.Frame('File 2', [browse_file_1, view_col_1])],
+        [sg.Frame('File 1', [browse_file_0, [sg.Text('', key='PF-PAGE-LOAD-0')], view_col_0],
+                  background_color=FRAME_COLOR),
+         sg.Frame('File 2', [browse_file_1, [sg.Text('', key='PF-PAGE-LOAD-1')], view_col_1],
+                  background_color=FRAME_COLOR)],
 
     ],
 
