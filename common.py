@@ -5,6 +5,7 @@ import traceback
 import logging
 from datetime import datetime
 import fitz  # PyMuPDF, imported as fitz for backward compatibility reasons
+from PyPDF2 import PdfFileMerger
 
 log_path = os.path.expanduser('~/Documents')
 logging.basicConfig(filename=f'{log_path}\\mediahub.log', level=logging.DEBUG,
@@ -35,12 +36,17 @@ RESOLUTIONS = ['Highest', '1080p', '720p', '360p']
 cwd = os.getcwd()
 
 files_to_delete = []
+PDF_BASE_W = 816
 
 # sg.theme('DefaultNoMoreNagging')
-# sg.theme('DarkBlack')
+sg.theme('DarkGrey10')
+# sg.theme('Dark')
 WIN_FONT = 'Any 10'
 sg.set_options(border_width=0, margins=(0, 0), element_padding=(5, 3))
 WIN_TITLE_COLOR = "#343434"
+FRAME_COLOR = sg.theme_background_color()
+BUTTON_COLOR = sg.theme_button_color()
+COLUMN_COLOR = sg.theme_background_color()
 
 
 def get_image_size(filepath):
@@ -63,11 +69,13 @@ def is_image(filename):
 
 
 # def show_message(msg, status=False):
-def show_message(msg, status=False):
+def show_message(msg, status=False, auto_c=True):
     if status:
-        sg.popup(msg, keep_on_top=True, title="Success", no_titlebar=True, auto_close=True, background_color="#43CD80")
+        sg.popup(msg, keep_on_top=True, title="Success", no_titlebar=True, auto_close=auto_c,
+                 background_color="#43CD80", text_color="#FFFFFF")
     else:
-        sg.popup(msg, keep_on_top=True, title="Error", no_titlebar=True, auto_close=True, background_color="#FA8072")
+        sg.popup(msg, keep_on_top=True, title="Error", no_titlebar=True, auto_close=False, background_color="#FA8072",
+                 text_color="#FFFFFF")
 
 
 def auto_resize(img_path, default_w=True, width=None):
@@ -96,18 +104,21 @@ def auto_resize(img_path, default_w=True, width=None):
         return base64.b64encode(byte_io)
     except Exception as error:
         logging.error(f"Common-auto_resize{error}\n{traceback.format_exc()}")
-        return False
+        raise Exception(error)
 
 
 def resize_b(img_b, base_width=100):
-    buffer = io.BytesIO()
-    imgdata = base64.b64decode(img_b)
-    img = Image.open(io.BytesIO(imgdata))
-    w_percent = (int(base_width) / float(img.size[0]))
-    h_size = int((float(img.size[1]) * float(w_percent)))
-    new_img = img.resize((base_width, h_size), Image.ANTIALIAS)
-    new_img.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue())
+    try:
+        buffer = io.BytesIO()
+        imgdata = base64.b64decode(img_b)
+        img = Image.open(io.BytesIO(imgdata))
+        w_percent = (int(base_width) / float(img.size[0]))
+        h_size = int((float(img.size[1]) * float(w_percent)))
+        new_img = img.resize((base_width, h_size), Image.ANTIALIAS)
+        new_img.save(buffer, format="PNG")
+        return base64.b64encode(buffer.getvalue())
+    except Exception as error:
+        raise Exception(error)
 
 
 def add_new_image(path, key):
@@ -122,26 +133,28 @@ def get_ratio_h(img_path, width):
         w_percent = (int(width) / float(img.size[0]))
         return int((float(img.size[1]) * float(w_percent)))
     except Exception as error:
-        logging.warning(f"common - get_ratio_h: {error}")
-        return ''
+        raise Exception(f"common - get_ratio_h: {error}")
 
 
 def pdf_to_image(file_path):
-    base64_files = []
-    max_w = 800
-    if file_path.split(".")[-1].upper() == "PDF":
-        doc = fitz.open(file_path)  # open document
-        i = 0
-        for page in doc:
-            pix = page.get_pixmap()  # render page to an image
-            file_path_png = f"./temp/page_{i}.png"
-            pix.save(file_path_png)
-            base64_files.append(auto_resize(file_path_png, width=max_w))
-            os.remove(file_path_png)
-            i += 1
-    else:
-        base64_files.append(auto_resize(file_path, width=max_w))
-    return base64_files
+    try:
+        base64_files = []
+        max_w = 800
+        if file_path.split(".")[-1].upper() == "PDF":
+            doc = fitz.open(file_path)  # open document
+            i = 0
+            for page in doc:
+                pix = page.get_pixmap()  # render page to an image
+                file_path_png = f"./temp/page_{i}.png"
+                pix.save(file_path_png)
+                base64_files.append(auto_resize(file_path_png, width=max_w))
+                os.remove(file_path_png)
+                i += 1
+        else:
+            base64_files.append(auto_resize(file_path, width=max_w))
+        return base64_files
+    except Exception as error:
+        raise Exception(error)
 
 
 def get_file_name(ff="pdf"):
@@ -153,18 +166,24 @@ def convert_to_pdf(file_path):
     global files_to_delete
     try:
         file_format = file_path.split(".")[-1]
-        dir_path = f'{cwd}\\temp'
+        dir_path = f'{os.getenv("APPDATA")}\\MediaHub'
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         if file_format.upper() != "PDF" and file_format.lower() in IMAGES:
             img = Image.open(file_path)
-            new_file_path = f'{os.getenv("APPDATA")}\\{get_file_name()}'
+            new_file_path = f'{os.getenv("APPDATA")}\\MediaHub\\{get_file_name()}'
             try:
                 img.convert('RGB')
+                w_percent = (int(PDF_BASE_W) / float(img.size[0]))
+                h_size = int((float(img.size[1]) * float(w_percent)))
+                img.resize((PDF_BASE_W, h_size), Image.ANTIALIAS)
                 img.save(new_file_path)
             except Exception as error:
                 rgb = Image.new('RGB', img.size, (255, 255, 255))  # white background
                 rgb.paste(img, mask=img.split()[3])
+                w_percent = (int(PDF_BASE_W) / float(img.size[0]))
+                h_size = int((float(img.size[1]) * float(w_percent)))
+                rgb.resize((PDF_BASE_W, h_size), Image.ANTIALIAS)
                 rgb.save(new_file_path, 'PDF', resoultion=100.0)
                 logging.warning(f"pdf_merger - convert_to_pdf: {error}")
             files_to_delete.append(new_file_path)
@@ -172,5 +191,12 @@ def convert_to_pdf(file_path):
         elif file_format.upper() == "PDF":
             return file_path
     except Exception as error:
-        logging.error(f"pdf_merger - convert_to_pdf: {error}\n{traceback.format_exc()}")
-        return ""
+        raise Exception(f"pdf_merger - convert_to_pdf: {error}\n{traceback.format_exc()}")
+
+
+def merge_pdfs(files, fp):
+    merger = PdfFileMerger()
+    for pdf_file in files:
+        merger.append(pdf_file)
+    merger.write(fp)
+    merger.close()
